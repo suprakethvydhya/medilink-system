@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="title">📅 Doctor Appointments</h2>
+
+<div class="container" style="align-items:flex-start;">
+
+<form method="POST" action="/delete_appointment">
+
+    <div class="card fade-in" style="width:90%; max-width:900px;">
+
+        {% if data %}
+
+        <div class="table-wrapper">
+
+        <table>
+            <tr>
+                <th>Select</th>
+                <th>ID</th>
+                <th>Patient</th>
+                <th>Doctor</th>
+                <th>Date</th>
+            </tr>
+
+            {% for a in data %}
+            <tr>
+                <td>
+                    <input type="checkbox" name="delete_ids" value="{{ a[0] }}">
+                </td>
+                <td>{{ a[0] }}</td>
+                <td>{{ a[1] }}</td>
+                <td>{{ a[2] }}</td>
+                <td>{{ a[3] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        </div>
+
+        <button type="submit" onclick="return confirm('Remove selected appointments?')" style="margin-top:15px;">
+            🗑 Remove Selected
+        </button>
+
+        {% else %}
+
+        <div style="margin-top:20px;">
+            <h3 style="opacity:0.6;">📭 No Appointments</h3>
+            <p style="opacity:0.5;">No bookings available</p>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</form>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="title">📅 Book Appointment</h2>
+
+<div class="container">
+    <div class="card fade-in">
+
+        {% if msg %}
+            <p style="color: lightgreen;">{{ msg }}</p>
+        {% endif %}
+
+        <form method="POST">
+            <input name="pname" placeholder="Patient Name" required>
+            <input name="dname" placeholder="Doctor Name" required>
+            <input type="date" name="date" required>
+            <button>Book</button>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

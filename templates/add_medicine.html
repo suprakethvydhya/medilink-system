@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="title">💊 Add Medicine</h2>
+
+<div class="container">
+    <div class="card fade-in">
+
+        {% if msg %}
+            <p style="color: lightgreen;">{{ msg }}</p>
+        {% endif %}
+
+        <form method="POST">
+            <input name="id" placeholder="Medicine ID" required>
+            <input name="name" placeholder="Medicine Name" required>
+            <input type="date" name="expiry" required>
+            <input name="stock" type="number" placeholder="Stock" required>
+            <input name="price" type="number" step="0.01" placeholder="Price" required>
+            <button>Add</button>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="title">🔐 Login</h2>
+
+<div class="container">
+    <div class="card fade-in">
+
+        {% if msg %}
+            <p style="color:red;">{{ msg }}</p>
+        {% endif %}
+
+        <form method="POST">
+            <input name="username" placeholder="Username" required>
+            <input name="password" type="password" placeholder="Password" required>
+            <button>Login</button>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

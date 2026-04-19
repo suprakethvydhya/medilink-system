@@ -1,0 +1,246 @@
+/* ================= RESET ================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* ================= BODY ================= */
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+    min-height: 100vh;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ================= NAVBAR ================= */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 30px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.navbar h2 {
+    font-weight: 600;
+}
+
+.navbar a {
+    color: white;
+    margin-left: 20px;
+    text-decoration: none;
+    position: relative;
+    transition: 0.3s;
+}
+
+.navbar a:hover {
+    color: #38bdf8;
+}
+
+.navbar a::after {
+    content: '';
+    position: absolute;
+    width: 0%;
+    height: 2px;
+    left: 0;
+    bottom: -4px;
+    background: #38bdf8;
+    transition: 0.3s;
+}
+
+.navbar a:hover::after {
+    width: 100%;
+}
+
+/* ================= TITLE ================= */
+.title {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 32px;
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(56,189,248,0.3);
+}
+
+/* ================= CONTAINER ================= */
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 70vh;
+    padding-top: 40px;
+}
+
+/* ================= DASHBOARD ================= */
+.dashboard {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px; /* 🔥 spacing fix */
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+/* ================= CARD ================= */
+.card {
+    width: 90%;
+    max-width: 900px;
+    padding: 30px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 
+        0 10px 40px rgba(0,0,0,0.5),
+        inset 0 0 10px rgba(255,255,255,0.05);
+    text-align: center;
+    transition: 0.3s ease;
+    min-height: 250px;
+}
+
+.card:hover {
+    transform: translateY(-10px) scale(1.02);
+}
+
+/* SMALL DASHBOARD CARDS */
+.dashboard .card {
+    width: 260px;
+}
+
+/* ================= ROLE COLORS ================= */
+.card.doctor {
+    border-left: 4px solid #38bdf8;
+}
+
+.card.patient {
+    border-left: 4px solid #ec4899;
+}
+
+.card.pharma {
+    border-left: 4px solid #22c55e;
+}
+
+/* ================= FORM ================= */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ================= INPUT ================= */
+input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    background: rgba(255,255,255,0.1);
+    color: white;
+}
+
+input::placeholder {
+    color: #ccc;
+}
+
+input:focus {
+    border: 1px solid #38bdf8;
+    box-shadow: 0 0 10px rgba(56,189,248,0.5);
+}
+
+/* ================= BUTTON ================= */
+button, .card a {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #38bdf8, #6366f1);
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.3s;
+    text-decoration: none;
+    display: block;
+    letter-spacing: 0.5px;
+}
+
+button:hover, .card a:hover {
+    transform: scale(1.05);
+    box-shadow: 
+        0 0 25px rgba(56,189,248,0.7),
+        0 0 60px rgba(99,102,241,0.3);
+}
+
+/* ================= TABLE ================= */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto; /* 🔥 prevents overflow */
+}
+
+table {
+    width: 100%;
+    min-width: 600px;
+    border-collapse: collapse;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+th {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    padding: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+td {
+    padding: 14px;
+    text-align: center;
+}
+
+tr:nth-child(even) {
+    background: rgba(255,255,255,0.05);
+}
+
+tr:hover {
+    background: rgba(56,189,248,0.1);
+    transition: 0.3s;
+}
+
+/* ================= CHECKBOX ================= */
+input[type="checkbox"] {
+    transform: scale(1.2);
+    cursor: pointer;
+}
+
+/* ================= BACKGROUND GLOW ================= */
+.bg-glow {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 30%, rgba(56,189,248,0.2), transparent),
+                radial-gradient(circle at 80% 70%, rgba(99,102,241,0.2), transparent);
+    z-index: -1;
+    animation: moveBg 10s infinite alternate;
+}
+
+@keyframes moveBg {
+    from { transform: translate(0,0); }
+    to { transform: translate(-30px, 30px); }
+}
+
+/* ================= ANIMATION ================= */
+.fade-in {
+    animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}

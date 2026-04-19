@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="title">💊 Medicine Inventory</h2>
+
+<div class="container" style="align-items:flex-start;">
+
+<form method="POST" action="/delete_medicine">
+
+    <div class="card fade-in" style="width:100%; max-width:1000px;">
+
+        {% if data %}
+
+        <table>
+            <tr>
+                <th>Select</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Expiry</th>
+                <th>Stock</th>
+                <th>Price</th>
+            </tr>
+
+            {% for m in data %}
+            <tr>
+                <td>
+                    <input type="checkbox" name="delete_ids" value="{{ m[0] }}">
+                </td>
+                <td>{{ m[0] }}</td>
+                <td>{{ m[1] }}</td>
+                <td>{{ m[2] }}</td>
+                <td>{{ m[3] }}</td>
+                <td>{{ m[4] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <button type="submit" onclick="return confirm('Delete selected medicines?')" style="margin-top:15px;">
+            🗑 Delete Selected
+        </button>
+
+        {% else %}
+
+        <div style="margin-top:20px;">
+            <h3 style="opacity:0.6;">📭 Empty Inventory</h3>
+            <p style="opacity:0.5;">Add medicines to display here</p>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</form>
+
+</div>
+
+{% endblock %}

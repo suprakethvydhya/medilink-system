@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MediLink</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<div class="bg-glow"></div>
+
+<!-- NAVBAR -->
+<div class="navbar">
+    <h2>MediLink</h2>
+    <div>
+        {% if session.get('user') %}
+            <a href="/dashboard">Dashboard</a>
+            <a href="/logout">Logout</a>
+        {% else %}
+            <a href="/">Home</a>
+            <a href="/login">Login</a>
+        {% endif %}
+    </div>
+</div>
+
+{% block content %}{% endblock %}
+
+</body>
+</html>
