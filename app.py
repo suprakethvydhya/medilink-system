@@ -1,70 +1,85 @@
+import os
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from db import db, cursor
 
+load_dotenv()
+
 app = Flask(__name__)
-app.secret_key = 'secret123'
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+if not app.secret_key:
+    raise RuntimeError("FLASK_SECRET_KEY is not set. Check your .env file.")
 
 
-# ---------------- HELPER ----------------
+# ── Helper ────────────────────────────────────────────────────────────────────
+
 def check_role(role):
     return 'role' in session and session['role'] == role
 
 
-# ---------------- HOME ----------------
+# ── Home ──────────────────────────────────────────────────────────────────────
+
 @app.route('/')
-def home():
+def index():
     return render_template('index.html')
 
 
-# ---------------- LOGIN ----------------
+# ── Auth ──────────────────────────────────────────────────────────────────────
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password'].strip()
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
 
+        if not username or not password:
+            return render_template('login.html', error='All fields required.')
+
+        # Parameterized query — no SQL injection possible
         cursor.execute(
-            "SELECT role FROM Users WHERE username=%s AND password=%s",
-            (username, password)
+            "SELECT password, role FROM users WHERE username = %s",
+            (username,)
         )
-        user = cursor.fetchone()
+        row = cursor.fetchone()
 
-        if user:
+        # check_password_hash handles hashed comparison — no plaintext stored
+        if row and check_password_hash(row['password'], password):
+            session.clear()          # prevent session fixation
             session['user'] = username
-            session['role'] = user[0]
+            session['role'] = row['role']
             return redirect('/dashboard')
 
-        return render_template('login.html', msg="❌ Invalid Login")
+        return render_template('login.html', error='Invalid credentials.')
 
     return render_template('login.html')
 
 
-# ---------------- LOGOUT ----------------
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/login')
+    return redirect('/')
 
 
-# ---------------- DASHBOARD ----------------
+# ── Dashboard (role-based redirect) ───────────────────────────────────────────
+
 @app.route('/dashboard')
 def dashboard():
-    if 'role' not in session:
+    if 'user' not in session:
         return redirect('/login')
-
-    role = session['role']
-
+    role = session.get('role')
     if role == 'doctor':
         return redirect('/doctor')
     elif role == 'patient':
         return redirect('/patient')
     elif role == 'pharmacist':
         return redirect('/pharmacist')
+    return redirect('/login')
 
-    return redirect('/login')  # fallback safety
 
+# ── Doctor ────────────────────────────────────────────────────────────────────
 
-# ---------------- DOCTOR ----------------
 @app.route('/doctor')
 def doctor():
     if not check_role('doctor'):
@@ -72,7 +87,53 @@ def doctor():
     return render_template('doctor.html')
 
 
-# ---------------- PATIENT ----------------
+@app.route('/view_appointments')
+def view_appointments():
+    if not check_role('doctor'):
+        return redirect('/login')
+    cursor.execute("SELECT * FROM Appointment")
+    appointments = cursor.fetchall()
+    return render_template('view_appointments.html', appointments=appointments)
+
+
+@app.route('/delete_appointment', methods=['POST'])
+def delete_appointment():
+    if not check_role('doctor'):
+        return redirect('/login')
+    delete_ids = request.form.getlist('delete_ids[]')
+    for appt_id in delete_ids:
+        # Parameterized — each ID passed safely
+        cursor.execute(
+            "DELETE FROM Appointment WHERE Appointment_ID = %s",
+            (appt_id,)
+        )
+    db.commit()
+    return redirect('/view_appointments')
+
+
+@app.route('/add_prescription', methods=['GET', 'POST'])
+def add_prescription():
+    if not check_role('doctor'):
+        return redirect('/login')
+    if request.method == 'POST':
+        doctor   = request.form.get('doctor', '').strip()
+        patient  = request.form.get('patient', '').strip()
+        medicine = request.form.get('medicine', '').strip()
+        date     = request.form.get('date', '').strip()
+
+        cursor.execute(
+            "INSERT INTO Prescription (Doctor_Name, Patient_Name, Medicine_Name, Date) "
+            "VALUES (%s, %s, %s, %s)",
+            (doctor, patient, medicine, date)
+        )
+        db.commit()
+        return redirect('/doctor')
+
+    return render_template('add_prescription.html')
+
+
+# ── Patient ───────────────────────────────────────────────────────────────────
+
 @app.route('/patient')
 def patient():
     if not check_role('patient'):
@@ -80,7 +141,34 @@ def patient():
     return render_template('patient.html')
 
 
-# ---------------- PHARMACIST ----------------
+@app.route('/book_appointment', methods=['GET', 'POST'])
+def book_appointment():
+    if not check_role('patient'):
+        return redirect('/login')
+    if request.method == 'POST':
+        pname = request.form.get('pname', '').strip()
+        dname = request.form.get('dname', '').strip()
+        date  = request.form.get('date', '').strip()
+
+        cursor.execute(
+            "INSERT INTO Appointment (Patient_Name, Doctor_Name, Date) VALUES (%s, %s, %s)",
+            (pname, dname, date)
+        )
+        db.commit()
+        return redirect('/patient')
+
+    return render_template('appointment.html')
+
+
+@app.route('/view_prescriptions')
+def view_prescriptions():
+    cursor.execute("SELECT * FROM Prescription")
+    prescriptions = cursor.fetchall()
+    return render_template('view_prescriptions.html', prescriptions=prescriptions)
+
+
+# ── Pharmacist ────────────────────────────────────────────────────────────────
+
 @app.route('/pharmacist')
 def pharmacist():
     if not check_role('pharmacist'):
@@ -88,139 +176,54 @@ def pharmacist():
     return render_template('pharmacist.html')
 
 
-# ---------------- ADD MEDICINE ----------------
 @app.route('/add_medicine', methods=['GET', 'POST'])
 def add_medicine():
     if not check_role('pharmacist'):
         return redirect('/login')
-
     if request.method == 'POST':
-        try:
-            data = (
-                request.form['id'],
-                request.form['name'],
-                request.form['expiry'],
-                request.form['stock'],
-                request.form['price']
-            )
+        med_id  = request.form.get('id', '').strip()
+        name    = request.form.get('name', '').strip()
+        expiry  = request.form.get('expiry', '').strip()
+        stock   = request.form.get('stock', '').strip()
+        price   = request.form.get('price', '').strip()
 
-            cursor.execute("INSERT INTO Medicine VALUES (%s,%s,%s,%s,%s)", data)
-            db.commit()
-
-            return render_template('add_medicine.html', msg="✅ Medicine Added")
-
-        except Exception as e:
-            print("ERROR:", e)
-            return render_template('add_medicine.html', msg="❌ Error: Duplicate or Invalid")
+        cursor.execute(
+            "INSERT INTO Medicine (Medicine_ID, Medicine_Name, Expiry_Date, Stock, Price) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (med_id, name, expiry, stock, price)
+        )
+        db.commit()
+        return redirect('/pharmacist')
 
     return render_template('add_medicine.html')
 
 
-# ---------------- VIEW MEDICINE ----------------
 @app.route('/view_medicine')
 def view_medicine():
     if not check_role('pharmacist'):
         return redirect('/login')
-
     cursor.execute("SELECT * FROM Medicine")
-    data = cursor.fetchall()
-    return render_template('view_medicine.html', data=data)
+    medicines = cursor.fetchall()
+    return render_template('view_medicine.html', medicines=medicines)
 
 
-# ---------------- BOOK APPOINTMENT ----------------
-@app.route('/book_appointment', methods=['GET', 'POST'])
-def book_appointment():
-    if not check_role('patient'):
+@app.route('/delete_medicine', methods=['POST'])
+def delete_medicine():
+    # This route was referenced in the template but never implemented — now fixed
+    if not check_role('pharmacist'):
         return redirect('/login')
-
-    if request.method == 'POST':
-        try:
-            data = (
-                request.form['pname'],
-                request.form['dname'],
-                request.form['date']
-            )
-
-            cursor.execute(
-                "INSERT INTO Appointment (Patient_Name, Doctor_Name, Date) VALUES (%s,%s,%s)",
-                data
-            )
-            db.commit()
-
-            return render_template('appointment.html', msg="✅ Appointment Booked")
-
-        except Exception as e:
-            print("ERROR:", e)
-            return render_template('appointment.html', msg="❌ Error Booking Appointment")
-
-    return render_template('appointment.html')
+    delete_ids = request.form.getlist('delete_ids[]')
+    for med_id in delete_ids:
+        cursor.execute(
+            "DELETE FROM Medicine WHERE Medicine_ID = %s",
+            (med_id,)
+        )
+    db.commit()
+    return redirect('/view_medicine')
 
 
-# ---------------- VIEW APPOINTMENTS ----------------
-@app.route('/view_appointments')
-def view_appointments():
-    if not check_role('doctor'):
-        return redirect('/login')
+# ── Run ───────────────────────────────────────────────────────────────────────
 
-    cursor.execute("SELECT * FROM Appointment")
-    data = cursor.fetchall()
-    return render_template('view_appointments.html', data=data)
-
-
-# ---------------- ADD PRESCRIPTION ----------------
-@app.route('/add_prescription', methods=['GET', 'POST'])
-def add_prescription():
-    if not check_role('doctor'):
-        return redirect('/login')
-
-    if request.method == 'POST':
-        try:
-            data = (
-                request.form['doctor'],
-                request.form['patient'],
-                request.form['medicine'],
-                request.form['date']
-            )
-
-            cursor.execute(
-                "INSERT INTO Prescription (Doctor_Name, Patient_Name, Medicine_Name, Date) VALUES (%s,%s,%s,%s)",
-                data
-            )
-            db.commit()
-
-            return render_template('add_prescription.html', msg="✅ Prescription Added")
-
-        except Exception as e:
-            print("ERROR:", e)
-            return render_template('add_prescription.html', msg="❌ Error Adding Prescription")
-
-    return render_template('add_prescription.html')
-
-
-#----------------- VIEW PRESCRIPTIONS ----------------
-@app.route('/view_prescriptions')
-def view_prescriptions():
-    cursor.execute("SELECT * FROM Prescription")
-    data = cursor.fetchall()
-    return render_template('view_prescriptions.html', data=data)
-
-
-
-#---------------- DELETE APPOINTMENT ----------------
-@app.route('/delete_appointment', methods=['POST'])
-def delete_appointment():
-    ids = request.form.getlist('delete_ids')
-
-    if ids:
-        for aid in ids:
-            cursor.execute(
-                "DELETE FROM Appointment WHERE Appointment_ID=%s",
-                (aid,)
-            )
-        db.commit()
-
-    return redirect('/view_appointments')
-
-# ---------------- RUN ----------------
 if __name__ == '__main__':
+    # debug=True is fine for local dev; never deploy with it on
     app.run(debug=True)

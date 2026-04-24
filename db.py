@@ -1,15 +1,14 @@
 import mysql.connector
+import os
+from dotenv import load_dotenv
 
-try:
-    db = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="supra123",
-        database="pharmacy_db"
-    )
+load_dotenv()
 
-    cursor = db.cursor()
-    print("✅ Database Connected Successfully")
+db = mysql.connector.connect(
+    host=os.getenv("DB_HOST", "localhost"),
+    user=os.getenv("DB_USER", "root"),
+    password=os.getenv("DB_PASSWORD"),
+    database=os.getenv("DB_NAME", "pharmacy_db")
+)
 
-except mysql.connector.Error as err:
-    print("❌ Database Connection Failed:", err)
+cursor = db.cursor(dictionary=True)

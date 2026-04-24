@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="title">📝 Create Account</h2>
+
+<div class="container">
+<div class="card fade-in">
+
+    {% if msg %}
+        <p style="color:#f87171; margin-bottom:10px;">{{ msg }}</p>
+    {% endif %}
+
+    <form method="POST">
+
+        <input name="username" placeholder="Username" required>
+
+        <input name="password" type="password" placeholder="Password" required>
+
+        <select name="role" id="role" required onchange="toggleSpecialization()">
+            <option value="">Select Role</option>
+            <option value="doctor">Doctor</option>
+            <option value="patient">Patient</option>
+            <option value="pharmacist">Pharmacist</option>
+        </select>
+
+        <!-- SPECIALIZATION (HIDDEN BY DEFAULT) -->
+        <select name="specialization" id="spec" style="display:none;">
+            <option value="">Doctor Specialization</option>
+            <option>Cardiologist</option>
+            <option>Gynecologist</option>
+            <option>Dentist</option>
+            <option>General</option>
+        </select>
+
+        <button type="submit">Create Account</button>
+
+    </form>
+
+    <p style="margin-top:15px; opacity:0.7;">
+        Already have an account? 
+        <a href="/login" style="color:#38bdf8;">Login</a>
+    </p>
+
+</div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+function toggleSpecialization() {
+    const role = document.getElementById("role").value;
+    const spec = document.getElementById("spec");
+
+    if (role === "doctor") {
+        spec.style.display = "block";
+    } else {
+        spec.style.display = "none";
+        spec.value = "";
+    }
+}
+</script>
+
+{% endblock %}
