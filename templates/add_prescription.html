@@ -1,33 +1,62 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}New Prescription{% endblock %}
 
 {% block content %}
-
-<h2 class="title">📝 Add Prescription</h2>
-
-<div class="container">
-
-    <div class="card fade-in">
-
-        {% if msg %}
-            <p style="color: lightgreen; font-weight: bold;">{{ msg }}</p>
-        {% endif %}
-
-        <form method="POST">
-
-            <input name="doctor" placeholder="Doctor Name" required>
-
-            <input name="patient" placeholder="Patient Name" required>
-
-            <input name="medicine" placeholder="Medicine Name" required>
-
-            <input type="date" name="date" required>
-
-            <button type="submit">Add Prescription</button>
-
-        </form>
-
-    </div>
-
+<div class="page-header">
+  <div>
+    <h1>New Prescription</h1>
+    <p class="page-subtitle">Write a prescription for a patient</p>
+  </div>
+  <a href="{{ url_for('doctor') }}" class="btn btn-secondary">← Back</a>
 </div>
 
+<div class="card" style="max-width:620px;">
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('add_prescription') }}">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="doctor">Doctor Name <span class="required">*</span></label>
+          <input class="form-control" type="text" id="doctor" name="doctor"
+                 value="{{ session.user }}" placeholder="Prescribing doctor" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="patient">Patient Name <span class="required">*</span></label>
+          <input class="form-control" type="text" id="patient" name="patient"
+                 placeholder="Patient's full name" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="medicine">Medicine Name <span class="required">*</span></label>
+          <input class="form-control" type="text" id="medicine" name="medicine"
+                 placeholder="e.g. Amoxicillin 500mg" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="dosage">Dosage / Frequency</label>
+          <input class="form-control" type="text" id="dosage" name="dosage"
+                 placeholder="e.g. 1 tablet twice daily">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="notes">Clinical Notes</label>
+        <textarea class="form-control" id="notes" name="notes" rows="3"
+                  placeholder="Additional instructions or observations…"
+                  style="resize:vertical; font-family:inherit;"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="date">Prescription Date <span class="required">*</span></label>
+        <input class="form-control" type="date" id="date" name="date"
+               value="{{ today }}" min="{{ today }}" required>
+      </div>
+
+      <div style="display:flex; gap:.75rem; margin-top:1.5rem;">
+        <button type="submit" class="btn btn-primary">Issue Prescription</button>
+        <a href="{{ url_for('doctor') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}

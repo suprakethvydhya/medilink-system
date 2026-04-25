@@ -1,40 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}Book Appointment{% endblock %}
+{% block title %}Edit Appointment{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>Book Appointment</h1>
-    <p class="page-subtitle">Schedule a new appointment with a doctor</p>
+    <h1>Edit Appointment</h1>
+    <p class="page-subtitle">Appointment #{{ appt.Appointment_ID }}</p>
   </div>
-  <a href="{{ url_for('patient') }}" class="btn btn-secondary">← Back</a>
+  <a href="{{ url_for('view_appointments') }}" class="btn btn-secondary">← Back</a>
 </div>
 
 <div class="card" style="max-width:560px;">
   <div class="card-body">
-    <form method="POST" action="{{ url_for('book_appointment') }}">
+    <form method="POST">
       <div class="form-group">
         <label class="form-label" for="pname">Patient Name <span class="required">*</span></label>
         <input class="form-control" type="text" id="pname" name="pname"
-               value="{{ session.user }}" placeholder="Patient name" required>
+               value="{{ appt.Patient_Name }}" placeholder="Patient name" required>
       </div>
 
       <div class="form-group">
         <label class="form-label" for="dname">Doctor Name <span class="required">*</span></label>
         <input class="form-control" type="text" id="dname" name="dname"
-               placeholder="Enter doctor's name" required>
+               value="{{ appt.Doctor_Name }}" placeholder="Doctor name" required>
       </div>
 
       <div class="form-group">
         <label class="form-label" for="date">Appointment Date <span class="required">*</span></label>
         <input class="form-control" type="date" id="date" name="date"
-               min="{{ today }}" required>
+               value="{{ appt.Date }}"
+               min="{{ today or '' }}" required>
         <span class="form-hint">Dates in the past are not allowed.</span>
       </div>
 
       <div style="display:flex; gap:.75rem; margin-top:1.5rem;">
-        <button type="submit" class="btn btn-primary">Book Appointment</button>
-        <a href="{{ url_for('patient') }}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{{ url_for('view_appointments') }}" class="btn btn-secondary">Cancel</a>
       </div>
     </form>
   </div>

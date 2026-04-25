@@ -1,60 +1,209 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Appointments{% endblock %}
 
 {% block content %}
-
-<h2 class="title">📅 Doctor Appointments</h2>
-
-<div class="container" style="align-items:flex-start;">
-
-<form method="POST" action="/delete_appointment">
-
-    <div class="card fade-in" style="width:90%; max-width:900px;">
-
-        {% if data %}
-
-        <div class="table-wrapper">
-
-        <table>
-            <tr>
-                <th>Select</th>
-                <th>ID</th>
-                <th>Patient</th>
-                <th>Doctor</th>
-                <th>Date</th>
-            </tr>
-
-            {% for a in data %}
-            <tr>
-                <td>
-                    <input type="checkbox" name="delete_ids" value="{{ a[0] }}">
-                </td>
-                <td>{{ a[0] }}</td>
-                <td>{{ a[1] }}</td>
-                <td>{{ a[2] }}</td>
-                <td>{{ a[3] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        </div>
-
-        <button type="submit" onclick="return confirm('Remove selected appointments?')" style="margin-top:15px;">
-            🗑 Remove Selected
-        </button>
-
-        {% else %}
-
-        <div style="margin-top:20px;">
-            <h3 style="opacity:0.6;">📭 No Appointments</h3>
-            <p style="opacity:0.5;">No bookings available</p>
-        </div>
-
-        {% endif %}
-
-    </div>
-
-</form>
-
+<div class="page-header">
+  <div>
+    <h1>Appointments</h1>
+    <p class="page-subtitle">Track patient appointments — update status as you see each patient</p>
+  </div>
 </div>
 
+<!-- Filter tabs -->
+<div style="display:flex; gap:.375rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+  <a href="{{ url_for('view_appointments') }}"
+     class="page-btn {% if not request.args.get('filter') %}active{% endif %}"
+     style="text-decoration:none;">All</a>
+  <a href="{{ url_for('view_appointments', filter='Scheduled') }}"
+     class="page-btn {% if request.args.get('filter') == 'Scheduled' %}active{% endif %}"
+     style="text-decoration:none;">📅 Scheduled</a>
+  <a href="{{ url_for('view_appointments', filter='In Progress') }}"
+     class="page-btn {% if request.args.get('filter') == 'In Progress' %}active{% endif %}"
+     style="text-decoration:none;">⏳ In Progress</a>
+  <a href="{{ url_for('view_appointments', filter='Completed') }}"
+     class="page-btn {% if request.args.get('filter') == 'Completed' %}active{% endif %}"
+     style="text-decoration:none;">✓ Completed</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>Appointment List</h2>
+    <span class="badge badge-teal">{{ appointments|length }} shown</span>
+  </div>
+
+  <!-- Bulk delete form -->
+  <form method="POST" action="{{ url_for('delete_appointment') }}" class="delete-form">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px;">
+              <input type="checkbox" id="select-all" title="Select all">
+            </th>
+            <th>ID</th>
+            <th>Patient</th>
+            <th>Doctor</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for appt in appointments %}
+          <tr>
+            <td><input type="checkbox" name="delete_ids[]" value="{{ appt.Appointment_ID }}"></td>
+            <td style="color:var(--gray-400); font-size:.8rem;">#{{ appt.Appointment_ID }}</td>
+            <td><strong>{{ appt.Patient_Name }}</strong></td>
+            <td>{{ appt.Doctor_Name }}</td>
+            <td>{{ appt.Date }}</td>
+
+            <!-- Status badge -->
+            <td>
+              {% if appt.Status == 'Completed' %}
+                <span class="badge badge-green">✓ Completed</span>
+              {% elif appt.Status == 'In Progress' %}
+                <span class="badge badge-amber">⏳ In Progress</span>
+              {% else %}
+                <span class="badge badge-teal">📅 Scheduled</span>
+              {% endif %}
+            </td>
+
+            <!-- Notes preview -->
+            <td style="max-width:160px; font-size:.8rem; color:var(--gray-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              {{ appt.Notes or '—' }}
+            </td>
+
+            <!-- Inline status update + edit -->
+            <td>
+              <div class="td-actions" style="align-items:center; flex-wrap:nowrap;">
+
+                {% if appt.Status != 'Completed' %}
+                  <!-- Quick status advance button -->
+                  <form method="POST"
+                        action="{{ url_for('update_appointment_status', appt_id=appt.Appointment_ID) }}"
+                        style="display:inline;">
+                    {% if appt.Status == 'Scheduled' %}
+                      <input type="hidden" name="status" value="In Progress">
+                      <input type="hidden" name="notes" value="{{ appt.Notes or '' }}">
+                      <button type="submit" class="btn btn-sm"
+                              style="background:var(--amber-100); color:#92400e; border-color:#fde68a;"
+                              title="Mark patient as currently being seen">
+                        ▶ Start
+                      </button>
+                    {% elif appt.Status == 'In Progress' %}
+                      <input type="hidden" name="status" value="Completed">
+                      <input type="hidden" name="notes" value="{{ appt.Notes or '' }}">
+                      <button type="submit" class="btn btn-sm"
+                              style="background:var(--green-100); color:#15803d; border-color:#86efac;"
+                              title="Mark patient as seen and done">
+                        ✓ Done
+                      </button>
+                    {% endif %}
+                  </form>
+                {% else %}
+                  <span style="color:var(--green-500); font-size:.85rem; font-weight:600;">Seen ✓</span>
+                {% endif %}
+
+                <!-- Notes / Edit button — opens inline panel -->
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        onclick="toggleNotes({{ appt.Appointment_ID }})"
+                        title="Add notes or change details">
+                  ✎ Edit
+                </button>
+
+              </div>
+
+              <!-- Expandable inline edit panel -->
+              <div id="notes-{{ appt.Appointment_ID }}"
+                   style="display:none; margin-top:.6rem; padding:.75rem; background:var(--gray-50);
+                          border:1px solid var(--gray-200); border-radius:var(--radius-md); min-width:280px;">
+                <form method="POST"
+                      action="{{ url_for('update_appointment_status', appt_id=appt.Appointment_ID) }}">
+                  <div style="margin-bottom:.5rem;">
+                    <label style="font-size:.75rem; font-weight:600; color:var(--gray-600); display:block; margin-bottom:.25rem;">Status</label>
+                    <select name="status" class="form-control" style="font-size:.8rem; padding:.3rem .6rem;">
+                      <option value="Scheduled"   {% if appt.Status == 'Scheduled'   %}selected{% endif %}>📅 Scheduled</option>
+                      <option value="In Progress" {% if appt.Status == 'In Progress' %}selected{% endif %}>⏳ In Progress</option>
+                      <option value="Completed"   {% if appt.Status == 'Completed'   %}selected{% endif %}>✓ Completed</option>
+                    </select>
+                  </div>
+                  <div style="margin-bottom:.5rem;">
+                    <label style="font-size:.75rem; font-weight:600; color:var(--gray-600); display:block; margin-bottom:.25rem;">Doctor's Notes</label>
+                    <textarea name="notes" rows="2"
+                              class="form-control"
+                              style="font-size:.8rem; padding:.3rem .6rem; resize:vertical;"
+                              placeholder="Diagnosis, follow-up instructions…">{{ appt.Notes or '' }}</textarea>
+                  </div>
+                  <div style="display:flex; gap:.4rem;">
+                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    <button type="button" class="btn btn-secondary btn-sm"
+                            onclick="toggleNotes({{ appt.Appointment_ID }})">Cancel</button>
+                  </div>
+                </form>
+
+                <!-- Separate edit form for patient/doctor/date fields -->
+                <div style="border-top:1px solid var(--gray-200); margin-top:.75rem; padding-top:.75rem;">
+                  <a href="{{ url_for('edit_appointment', appt_id=appt.Appointment_ID) }}"
+                     class="btn btn-secondary btn-sm" style="font-size:.75rem;">
+                    ✎ Edit Patient / Date
+                  </a>
+                </div>
+              </div>
+
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">
+              <div class="empty-state">
+                <span class="empty-icon">📅</span>
+                <p>No appointments found{% if request.args.get('filter') %} with status "{{ request.args.get('filter') }}"{% endif %}.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if appointments %}
+    <div style="padding:.75rem 1rem; border-top:1px solid var(--gray-200);
+                display:flex; gap:.5rem; align-items:center;">
+      <button type="submit" class="btn btn-danger btn-sm">Delete Selected</button>
+      <span style="font-size:.8rem; color:var(--gray-400);">Select rows then click delete</span>
+    </div>
+    {% endif %}
+  </form>
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a class="page-btn" href="?page={{ page - 1 }}{% if request.args.get('filter') %}&filter={{ request.args.get('filter') }}{% endif %}">‹</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      <a class="page-btn {% if p == page %}active{% endif %}"
+         href="?page={{ p }}{% if request.args.get('filter') %}&filter={{ request.args.get('filter') }}{% endif %}">{{ p }}</a>
+    {% endfor %}
+    {% if page < total_pages %}
+      <a class="page-btn" href="?page={{ page + 1 }}{% if request.args.get('filter') %}&filter={{ request.args.get('filter') }}{% endif %}">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  // Select-all checkbox
+  document.getElementById('select-all').addEventListener('change', function() {
+    document.querySelectorAll('input[name="delete_ids[]"]').forEach(cb => cb.checked = this.checked);
+  });
+
+  // Toggle inline notes panel
+  function toggleNotes(id) {
+    const el = document.getElementById('notes-' + id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+</script>
 {% endblock %}

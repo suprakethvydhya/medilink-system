@@ -1,21 +1,130 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Patient Dashboard{% endblock %}
+
 {% block content %}
+<div class="page-header">
+  <div>
+    <h1>Patient Dashboard</h1>
+    <p class="page-subtitle">Hello, {{ session.user }}</p>
+  </div>
+  <a href="{{ url_for('book_appointment') }}" class="btn btn-primary">+ Book Appointment</a>
+</div>
 
-<h2 class="title">🧑 Patient Panel</h2>
+<!-- Summary stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">My Appointments</span>
+    <span class="stat-value">{{ appt_count }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">My Prescriptions</span>
+    <span class="stat-value">{{ rx_count }}</span>
+  </div>
+  {% if pending_rx > 0 %}
+  <div class="stat-card warning">
+    <span class="stat-label">⏳ Awaiting Dispense</span>
+    <span class="stat-value">{{ pending_rx }}</span>
+  </div>
+  {% endif %}
+</div>
 
-<div class="dashboard">
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
 
-    <div class="card patient">
-        <h3>Appointments</h3>
-        <a href="/book_appointment">Book Appointment</a>
+  <!-- Upcoming appointments — with LIVE doctor status -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📅 Upcoming Appointments</h2>
+      <a href="{{ url_for('my_appointments') }}" style="font-size:.8rem; color:var(--teal-600);">View all →</a>
     </div>
-
-    <div class="card patient">
-        <h3>Prescriptions</h3>
-        <<a href="/view_prescriptions">View Prescriptions</a>
-
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Doctor</th><th>Date</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for appt in upcoming_appts %}
+          <tr>
+            <td><strong>Dr. {{ appt.Doctor_Name }}</strong></td>
+            <td>{{ appt.Date }}</td>
+            <td>
+              {% if appt.Status == 'In Progress' %}
+                <span class="badge badge-amber">⏳ Doctor is seeing you</span>
+              {% elif appt.Status == 'Completed' %}
+                <span class="badge badge-green">✓ Seen</span>
+              {% else %}
+                <span class="badge badge-teal">📅 Scheduled</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center; padding:1.5rem; color:var(--gray-400);">
+              No upcoming appointments.<br>
+              <a href="{{ url_for('book_appointment') }}" style="font-size:.85rem;">Book one →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <!-- Recent prescriptions — with pharmacist dispensing status -->
+  <div class="card">
+    <div class="card-header">
+      <h2>💊 My Prescriptions</h2>
+      <a href="{{ url_for('my_prescriptions') }}" style="font-size:.8rem; color:var(--teal-600);">View all →</a>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Medicine</th><th>Doctor</th><th>Ready?</th></tr>
+        </thead>
+        <tbody>
+          {% for rx in recent_rx %}
+          <tr>
+            <td><strong>{{ rx.Medicine_Name }}</strong>
+              {% if rx.Dosage %}<br><span style="font-size:.75rem; color:var(--gray-400);">{{ rx.Dosage }}</span>{% endif %}
+            </td>
+            <td style="font-size:.85rem;">Dr. {{ rx.Doctor_Name }}</td>
+            <td>
+              {% if rx.Status == 'Dispensed' %}
+                <span class="badge badge-green">✓ Ready to collect</span>
+              {% else %}
+                <span class="badge badge-amber">⏳ Being prepared</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center; padding:1.5rem; color:var(--gray-400);">
+              No prescriptions yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 
+<!-- Quick actions -->
+<div class="actions-grid">
+  <a href="{{ url_for('book_appointment') }}" class="action-card">
+    <div class="action-icon">📅</div>
+    <h3>Book Appointment</h3>
+    <p>Schedule a new appointment with a doctor</p>
+  </a>
+  <a href="{{ url_for('my_appointments') }}" class="action-card">
+    <div class="action-icon">🗓</div>
+    <h3>My Appointments</h3>
+    <p>{{ appt_count }} total · see doctor status updates</p>
+  </a>
+  <a href="{{ url_for('my_prescriptions') }}" class="action-card">
+    <div class="action-icon">💊</div>
+    <h3>My Prescriptions</h3>
+    <p>{{ rx_count }} total{% if pending_rx %} · {{ pending_rx }} being prepared{% endif %}</p>
+  </a>
+</div>
 {% endblock %}

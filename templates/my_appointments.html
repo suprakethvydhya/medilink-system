@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}My Appointments{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>My Appointments</h1>
+    <p class="page-subtitle">Your appointment history and upcoming bookings</p>
+  </div>
+  <a href="{{ url_for('book_appointment') }}" class="btn btn-primary">+ Book New</a>
+</div>
+
+<!-- Filter tabs -->
+<div style="display:flex; gap:.375rem; margin-bottom:1.25rem;">
+  <a href="?show=upcoming" class="page-btn {% if show == 'upcoming' %}active{% endif %}" style="text-decoration:none;">📅 Upcoming</a>
+  <a href="?show=all"      class="page-btn {% if show == 'all'      %}active{% endif %}" style="text-decoration:none;">All</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>
+      {% if show == 'upcoming' %}Upcoming Appointments
+      {% else %}All My Appointments
+      {% endif %}
+    </h2>
+    <span class="badge badge-teal">{{ appointments|length }} shown</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Doctor</th>
+          <th>Date</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for appt in appointments %}
+        <tr>
+          <td><strong>Dr. {{ appt.Doctor_Name }}</strong></td>
+          <td>{{ appt.Date }}</td>
+          <td>
+            {% if appt.Status == 'Completed' %}
+              <span class="badge badge-green">✓ Seen</span>
+            {% elif appt.Status == 'In Progress' %}
+              <span class="badge badge-amber">⏳ Doctor is seeing you now</span>
+            {% else %}
+              <span class="badge badge-teal">📅 Scheduled</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="3">
+            <div class="empty-state">
+              <span class="empty-icon">📅</span>
+              <p>
+                {% if show == 'upcoming' %}No upcoming appointments.
+                  <a href="{{ url_for('book_appointment') }}">Book one →</a>
+                {% elif show == 'completed' %}No completed appointments yet.
+                {% else %}No appointments found.
+                {% endif %}
+              </p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a class="page-btn" href="?page={{ page - 1 }}&show={{ show }}">‹</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      <a class="page-btn {% if p == page %}active{% endif %}"
+         href="?page={{ p }}&show={{ show }}">{{ p }}</a>
+    {% endfor %}
+    {% if page < total_pages %}
+      <a class="page-btn" href="?page={{ page + 1 }}&show={{ show }}">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

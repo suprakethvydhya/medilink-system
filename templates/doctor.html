@@ -1,20 +1,155 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Doctor Dashboard{% endblock %}
+
 {% block content %}
+<div class="page-header">
+  <div>
+    <h1>Doctor Dashboard</h1>
+    <p class="page-subtitle">Welcome back, Dr. {{ session.user }}</p>
+  </div>
+  <a href="{{ url_for('add_prescription') }}" class="btn btn-primary">+ New Prescription</a>
+</div>
 
-<h2 class="title">👨‍⚕️ Doctor Panel</h2>
+<!-- Status overview -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total Appointments</span>
+    <span class="stat-value">{{ appt_count }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">📅 Scheduled</span>
+    <span class="stat-value" style="color:var(--blue-500);">{{ scheduled_count }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">⏳ In Progress</span>
+    <span class="stat-value" style="color:var(--amber-500);">{{ in_progress_count }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">✓ Seen Today</span>
+    <span class="stat-value" style="color:var(--green-500);">{{ completed_count }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">💊 Rx Pending</span>
+    <span class="stat-value" style="color:var(--amber-500);">{{ rx_pending }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">✓ Rx Dispensed</span>
+    <span class="stat-value" style="color:var(--green-500);">{{ rx_dispensed }}</span>
+  </div>
+</div>
 
-<div class="dashboard">
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
 
-    <div class="card doctor">
-        <h3>Patients</h3>
-        <a href="/view_appointments">View Appointments</a>
+  <!-- Today's patient list -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📋 Today's Patients</h2>
+      <a href="{{ url_for('view_appointments') }}" style="font-size:.8rem; color:var(--teal-600);">View all →</a>
     </div>
-
-    <div class="card doctor">
-        <h3>Prescription</h3>
-        <a href="/add_prescription">Write Prescription</a>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Patient</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for appt in todays_patients %}
+          <tr>
+            <td><strong>{{ appt.Patient_Name }}</strong></td>
+            <td>
+              {% if appt.Status == 'Completed' %}
+                <span class="badge badge-green">✓ Done</span>
+              {% elif appt.Status == 'In Progress' %}
+                <span class="badge badge-amber">⏳ Seeing</span>
+              {% else %}
+                <span class="badge badge-teal">📅 Waiting</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if appt.Status != 'Completed' %}
+              <form method="POST"
+                    action="{{ url_for('update_appointment_status', appt_id=appt.Appointment_ID) }}"
+                    style="display:inline;">
+                {% if appt.Status == 'Scheduled' %}
+                  <input type="hidden" name="status" value="In Progress">
+                  <input type="hidden" name="notes" value="{{ appt.Notes or '' }}">
+                  <button class="btn btn-sm" style="background:var(--amber-100);color:#92400e;border-color:#fde68a;">▶ Start</button>
+                {% else %}
+                  <input type="hidden" name="status" value="Completed">
+                  <input type="hidden" name="notes" value="{{ appt.Notes or '' }}">
+                  <button class="btn btn-sm" style="background:var(--green-100);color:#15803d;border-color:#86efac;">✓ Done</button>
+                {% endif %}
+              </form>
+              {% else %}
+                <span style="color:var(--gray-400); font-size:.8rem;">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center; padding:1.5rem; color:var(--gray-400);">
+              No appointments scheduled for today.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <!-- Recent prescriptions with dispensing status from pharmacist -->
+  <div class="card">
+    <div class="card-header">
+      <h2>💊 My Recent Prescriptions</h2>
+      <a href="{{ url_for('view_prescriptions') }}" style="font-size:.8rem; color:var(--teal-600);">View all →</a>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Patient</th><th>Medicine</th><th>Dispensed?</th></tr>
+        </thead>
+        <tbody>
+          {% for rx in recent_prescriptions %}
+          <tr>
+            <td>{{ rx.Patient_Name }}</td>
+            <td style="font-size:.85rem;"><strong>{{ rx.Medicine_Name }}</strong></td>
+            <td>
+              {% if rx.Status == 'Dispensed' %}
+                <span class="badge badge-green">✓ Dispensed</span>
+              {% else %}
+                <span class="badge badge-amber">⏳ Pending</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center; padding:1.5rem; color:var(--gray-400);">
+              No prescriptions written yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 
+<!-- Quick actions -->
+<div class="actions-grid">
+  <a href="{{ url_for('view_appointments') }}" class="action-card">
+    <div class="action-icon">📅</div>
+    <h3>All Appointments</h3>
+    <p>{{ scheduled_count }} waiting · {{ in_progress_count }} in progress</p>
+  </a>
+  <a href="{{ url_for('add_prescription') }}" class="action-card">
+    <div class="action-icon">📝</div>
+    <h3>New Prescription</h3>
+    <p>Write a prescription for a patient</p>
+  </a>
+  <a href="{{ url_for('view_prescriptions') }}" class="action-card">
+    <div class="action-icon">📋</div>
+    <h3>All Prescriptions</h3>
+    <p>{{ rx_pending }} pending dispense · {{ rx_dispensed }} dispensed</p>
+  </a>
+</div>
 {% endblock %}

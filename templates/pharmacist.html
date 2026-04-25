@@ -1,20 +1,140 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Pharmacist Dashboard{% endblock %}
+
 {% block content %}
+<div class="page-header">
+  <div>
+    <h1>Pharmacist Dashboard</h1>
+    <p class="page-subtitle">Welcome, {{ session.user }}</p>
+  </div>
+  {% if pending_count > 0 %}
+  <a href="{{ url_for('pharmacy_prescriptions', show='pending') }}" class="btn btn-primary">
+    ⏳ Dispense Queue ({{ pending_count }})
+  </a>
+  {% endif %}
+</div>
 
-<h2 class="title">💊 Pharmacist Panel</h2>
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total Medicines</span>
+    <span class="stat-value">{{ med_count }}</span>
+  </div>
+  <div class="stat-card {% if low_stock_count > 0 %}warning{% endif %}">
+    <span class="stat-label">⚠ Low Stock</span>
+    <span class="stat-value">{{ low_stock_count }}</span>
+  </div>
+  <div class="stat-card {% if pending_count > 0 %}warning{% endif %}">
+    <span class="stat-label">⏳ Pending Dispense</span>
+    <span class="stat-value">{{ pending_count }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">✓ Dispensed</span>
+    <span class="stat-value" style="color:var(--green-500);">{{ dispensed_count }}</span>
+  </div>
+</div>
 
-<div class="dashboard">
+<!-- Low stock warning -->
+{% if low_stock_items %}
+<div class="stock-alert">
+  <h3>⚠ Low Stock — items at or below {{ threshold }} units</h3>
+  <ul>
+    {% for m in low_stock_items %}
+      <li>{{ m.Medicine_Name }} — {{ m.Stock }} left</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
 
-    <div class="card pharma">
-        <h3>Add Medicine</h3>
-        <a href="/add_medicine">Add</a>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem;">
+
+  <!-- Prescriptions waiting to be dispensed (from doctors) -->
+  <div class="card">
+    <div class="card-header">
+      <h2>⏳ Pending Prescriptions</h2>
+      <a href="{{ url_for('pharmacy_prescriptions', show='pending') }}"
+         style="font-size:.8rem; color:var(--teal-600);">See all →</a>
     </div>
-
-    <div class="card pharma">
-        <h3>Inventory</h3>
-        <a href="/view_medicine">View</a>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Patient</th><th>Medicine</th><th>Doctor</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for rx in pending_prescriptions %}
+          <tr>
+            <td><strong>{{ rx.Patient_Name }}</strong></td>
+            <td style="font-size:.85rem;">{{ rx.Medicine_Name }}</td>
+            <td style="font-size:.8rem; color:var(--gray-500);">Dr. {{ rx.Doctor_Name }}</td>
+            <td>
+              <form method="POST"
+                    action="{{ url_for('dispense', pid=rx.Prescription_ID) }}"
+                    onsubmit="return confirm('Dispense {{ rx.Medicine_Name }} for {{ rx.Patient_Name }}?');">
+                <button class="btn btn-sm btn-primary">Dispense</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" style="text-align:center; padding:1.5rem; color:var(--gray-400);">
+              No pending prescriptions — all clear!
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
+  </div>
+
+  <!-- Recently dispensed (activity log) -->
+  <div class="card">
+    <div class="card-header">
+      <h2>✓ Recently Dispensed</h2>
+      <a href="{{ url_for('pharmacy_prescriptions', show='dispensed') }}"
+         style="font-size:.8rem; color:var(--teal-600);">See all →</a>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr><th>Patient</th><th>Medicine</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+          {% for rx in recent_dispensed %}
+          <tr>
+            <td>{{ rx.Patient_Name }}</td>
+            <td style="font-size:.85rem;"><strong>{{ rx.Medicine_Name }}</strong></td>
+            <td style="font-size:.8rem; color:var(--gray-500);">{{ rx.Date }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="3" style="text-align:center; padding:1.5rem; color:var(--gray-400);">
+              No dispensing history yet.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 
+<!-- Quick actions -->
+<div class="actions-grid">
+  <a href="{{ url_for('pharmacy_prescriptions', show='pending') }}" class="action-card">
+    <div class="action-icon">💊</div>
+    <h3>Dispense Prescriptions</h3>
+    <p>{{ pending_count }} prescription(s) waiting from doctors</p>
+  </a>
+  <a href="{{ url_for('view_medicine') }}" class="action-card">
+    <div class="action-icon">🏥</div>
+    <h3>Medicine Inventory</h3>
+    <p>{{ med_count }} medicines · {{ low_stock_count }} low stock</p>
+  </a>
+  <a href="{{ url_for('add_medicine') }}" class="action-card">
+    <div class="action-icon">➕</div>
+    <h3>Add Medicine</h3>
+    <p>Add a new medicine to the inventory</p>
+  </a>
+</div>
 {% endblock %}

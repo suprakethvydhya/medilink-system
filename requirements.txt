@@ -1,4 +1,4 @@
-Flask
-mysql-connector-python
-python-dotenv
-werkzeug
+flask>=3.0.0
+pymysql>=1.1.0
+python-dotenv>=1.0.0
+werkzeug>=3.0.0

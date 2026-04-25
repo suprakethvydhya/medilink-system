@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Dispense Prescriptions{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Prescription Dispensing</h1>
+    <p class="page-subtitle">
+      {% if pending_count > 0 %}
+        <span style="color:var(--amber-500); font-weight:600;">{{ pending_count }} pending</span>
+        · {{ dispensed_count }} dispensed
+      {% else %}
+        <span style="color:var(--green-500); font-weight:600;">All prescriptions dispensed ✓</span>
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+<!-- ✅ FIX: Filter tabs — no broken inline Jinja inside CSS properties -->
+<div style="display:flex; gap:.375rem; margin-bottom:1.25rem; flex-wrap:wrap;">
+
+  <a href="?show=all"
+     class="page-btn {% if show == 'all' %}active{% endif %}"
+     style="text-decoration:none;">
+    All &nbsp;<span class="badge badge-teal" style="font-size:.7rem;">{{ pending_count + dispensed_count }}</span>
+  </a>
+
+  <a href="?show=pending"
+     class="page-btn {% if show == 'pending' %}active{% endif %}"
+     style="text-decoration:none; {% if show == 'pending' %}background:var(--amber-500); border-color:var(--amber-500); color:#fff;{% elif pending_count > 0 %}border-color:var(--amber-500); color:var(--amber-500);{% endif %}">
+    ⏳ Pending
+    {% if pending_count > 0 %}
+      <span style="background:rgba(0,0,0,.15); border-radius:999px; padding:.05rem .45rem;
+                   font-size:.72rem; margin-left:.3rem;">{{ pending_count }}</span>
+    {% endif %}
+  </a>
+
+  <a href="?show=dispensed"
+     class="page-btn {% if show == 'dispensed' %}active{% endif %}"
+     style="text-decoration:none; {% if show == 'dispensed' %}background:var(--green-500); border-color:var(--green-500); color:#fff;{% endif %}">
+    ✓ Dispensed
+    {% if dispensed_count > 0 %}
+      <span style="background:rgba(0,0,0,.15); border-radius:999px; padding:.05rem .45rem;
+                   font-size:.72rem; margin-left:.3rem;">{{ dispensed_count }}</span>
+    {% endif %}
+  </a>
+
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h2>
+      {% if show == 'pending' %}Pending Prescriptions
+      {% elif show == 'dispensed' %}Dispensed Prescriptions
+      {% else %}All Prescriptions
+      {% endif %}
+    </h2>
+    <span class="badge badge-teal">{{ prescriptions|length }} on this page</span>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Patient</th>
+          <th>Doctor</th>
+          <th>Medicine</th>
+          <th>Dosage</th>
+          <th>Date</th>
+          <th>Stock</th>         {# ✅ NEW: live inventory column #}
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in prescriptions %}
+
+        {# ✅ NEW: look up stock for this prescription's medicine #}
+        {% set inv = stock_map.get(p.Medicine_Name) %}
+        {% set stock = inv.stock if inv else None %}
+        {% set med_id = inv.med_id if inv else None %}
+
+        <tr {% if p.Status == 'Pending' and (stock is none or stock == 0) %}
+               style="background:var(--red-100);"
+            {% endif %}>
+
+          <td style="color:var(--gray-400); font-size:.8rem;">#{{ p.Prescription_ID }}</td>
+          <td><strong>{{ p.Patient_Name }}</strong></td>
+          <td style="font-size:.875rem;">Dr. {{ p.Doctor_Name }}</td>
+          <td><strong>{{ p.Medicine_Name }}</strong></td>
+          <td style="color:var(--gray-500); font-size:.85rem;">{{ p.Dosage or '—' }}</td>
+          <td style="font-size:.875rem;">{{ p.Date }}</td>
+
+          <!-- Stock level — connected to Medicine inventory -->
+          <td>
+            {% if stock is none %}
+              <span class="badge badge-red" title="This medicine is not in the inventory">
+                ✕ Not found
+              </span>
+            {% elif stock == 0 %}
+              <span class="badge badge-red">Out of stock</span>
+            {% elif stock <= threshold %}
+              <span class="badge badge-amber">⚠ {{ stock }} left</span>
+            {% else %}
+              <span class="badge badge-green">{{ stock }} in stock</span>
+            {% endif %}
+          </td>
+
+          <!-- Status -->
+          <td>
+            {% if p.Status == 'Pending' %}
+              <span class="badge badge-amber">⏳ Pending</span>
+            {% else %}
+              <span class="badge badge-green">✓ Dispensed</span>
+            {% endif %}
+          </td>
+
+          <!-- Action -->
+          <td>
+            {% if p.Status == 'Pending' %}
+              {% if stock is none %}
+                {# Medicine not in inventory — link to add it #}
+                <a href="{{ url_for('add_medicine') }}"
+                   class="btn btn-sm btn-secondary"
+                   title="Add this medicine to inventory first">
+                  + Add stock
+                </a>
+              {% elif stock == 0 %}
+                {# Out of stock — link to edit and restock #}
+                <a href="{{ url_for('edit_medicine', med_id=med_id) }}"
+                   class="btn btn-sm btn-secondary"
+                   title="Restock this medicine">
+                  ↺ Restock
+                </a>
+              {% else %}
+                {# Stock available — show Dispense button #}
+                <form method="POST"
+                      action="{{ url_for('dispense', pid=p.Prescription_ID) }}"
+                      onsubmit="return confirm('Dispense {{ p.Medicine_Name }} for {{ p.Patient_Name }}?\nStock will drop from {{ stock }} to {{ stock - 1 }}.');">
+                  <button type="submit" class="btn btn-primary btn-sm">Dispense</button>
+                </form>
+              {% endif %}
+            {% else %}
+              <span style="color:var(--gray-400); font-size:.85rem;">—</span>
+            {% endif %}
+          </td>
+
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              <span class="empty-icon">💊</span>
+              <p>
+                {% if show == 'pending' %}No pending prescriptions — all done! ✓
+                {% elif show == 'dispensed' %}No dispensed prescriptions yet.
+                {% else %}No prescriptions on record.
+                {% endif %}
+              </p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Legend -->
+  {% if prescriptions %}
+  <div style="padding:.75rem 1.25rem; border-top:1px solid var(--gray-100);
+              display:flex; gap:1rem; flex-wrap:wrap; font-size:.78rem; color:var(--gray-500);">
+    <span><span class="badge badge-green" style="font-size:.7rem;">■</span> Sufficient stock</span>
+    <span><span class="badge badge-amber" style="font-size:.7rem;">■</span> Low stock (≤ {{ threshold }})</span>
+    <span><span class="badge badge-red"   style="font-size:.7rem;">■</span> Out of stock / not in inventory</span>
+    <span style="margin-left:auto;">Rows highlighted red = cannot dispense</span>
+  </div>
+  {% endif %}
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a class="page-btn" href="?page={{ page - 1 }}&show={{ show }}">‹</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      <a class="page-btn {% if p == page %}active{% endif %}"
+         href="?page={{ p }}&show={{ show }}">{{ p }}</a>
+    {% endfor %}
+    {% if page < total_pages %}
+      <a class="page-btn" href="?page={{ page + 1 }}&show={{ show }}">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

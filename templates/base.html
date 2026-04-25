@@ -1,29 +1,94 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>MediLink</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}MediLink{% endblock %} — MediLink</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-
 <body>
 
-<div class="bg-glow"></div>
+{% if session.user %}
+<nav class="navbar">
+  <a href="{{ url_for('dashboard') }}" class="nav-brand">
+    <span class="brand-icon">⚕</span>
+    <span class="brand-name">MediLink</span>
+  </a>
 
-<!-- NAVBAR -->
-<div class="navbar">
-    <h2>MediLink</h2>
-    <div>
-        {% if session.get('user') %}
-            <a href="/dashboard">Dashboard</a>
-            <a href="/logout">Logout</a>
-        {% else %}
-            <a href="/">Home</a>
-            <a href="/login">Login</a>
-        {% endif %}
-    </div>
-</div>
+  <div class="nav-links">
+    {% if session.role == 'doctor' %}
+      <a href="{{ url_for('doctor') }}" class="nav-link {% if request.endpoint == 'doctor' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('view_appointments') }}" class="nav-link {% if request.endpoint == 'view_appointments' %}active{% endif %}">Appointments</a>
+      <a href="{{ url_for('add_prescription') }}" class="nav-link {% if request.endpoint == 'add_prescription' %}active{% endif %}">New Rx</a>
+      <a href="{{ url_for('view_prescriptions') }}" class="nav-link {% if request.endpoint == 'view_prescriptions' %}active{% endif %}">All Prescriptions</a>
+    {% elif session.role == 'patient' %}
+      <a href="{{ url_for('patient') }}" class="nav-link {% if request.endpoint == 'patient' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('book_appointment') }}" class="nav-link {% if request.endpoint == 'book_appointment' %}active{% endif %}">Book Appointment</a>
+      <a href="{{ url_for('my_appointments') }}" class="nav-link {% if request.endpoint == 'my_appointments' %}active{% endif %}">My Appointments</a>
+      <a href="{{ url_for('my_prescriptions') }}" class="nav-link {% if request.endpoint == 'my_prescriptions' %}active{% endif %}">My Prescriptions</a>
+    {% elif session.role == 'pharmacist' %}
+      <a href="{{ url_for('pharmacist') }}" class="nav-link {% if request.endpoint == 'pharmacist' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('view_medicine') }}" class="nav-link {% if request.endpoint == 'view_medicine' %}active{% endif %}">Inventory</a>
+      <a href="{{ url_for('add_medicine') }}" class="nav-link {% if request.endpoint == 'add_medicine' %}active{% endif %}">Add Medicine</a>
+      <a href="{{ url_for('pharmacy_prescriptions') }}" class="nav-link {% if request.endpoint == 'pharmacy_prescriptions' %}active{% endif %}">Prescriptions</a>
+    {% endif %}
+  </div>
 
-{% block content %}{% endblock %}
+  <div class="nav-user">
+    <span class="user-badge role-{{ session.role }}">{{ session.role|capitalize }}</span>
+    <span class="username">{{ session.user }}</span>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+  </div>
+</nav>
+{% endif %}
 
+<main class="main-content {% if not session.user %}auth-page{% endif %}">
+
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-container">
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            <span class="alert-icon">
+              {% if category == 'success' %}✓{% elif category == 'danger' %}✕{% elif category == 'warning' %}⚠{% else %}ℹ{% endif %}
+            </span>
+            {{ message }}
+            <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+  // Auto-dismiss flash messages after 5 seconds
+  setTimeout(() => {
+    document.querySelectorAll('.alert').forEach(el => {
+      el.style.opacity = '0';
+      setTimeout(() => el.remove(), 300);
+    });
+  }, 5000);
+
+  // Confirm before bulk delete
+  document.querySelectorAll('.delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+      const checked = form.querySelectorAll('input[type="checkbox"]:checked').length;
+      if (checked === 0) {
+        e.preventDefault();
+        alert('Please select at least one item to delete.');
+        return;
+      }
+      if (!confirm(`Delete ${checked} item(s)? This cannot be undone.`)) {
+        e.preventDefault();
+      }
+    });
+  });
+</script>
 </body>
 </html>

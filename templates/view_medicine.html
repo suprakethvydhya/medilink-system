@@ -1,58 +1,114 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Medicine Inventory{% endblock %}
 
 {% block content %}
-
-<h2 class="title">💊 Medicine Inventory</h2>
-
-<div class="container" style="align-items:flex-start;">
-
-<form method="POST" action="/delete_medicine">
-
-    <div class="card fade-in" style="width:100%; max-width:1000px;">
-
-        {% if data %}
-
-        <table>
-            <tr>
-                <th>Select</th>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Expiry</th>
-                <th>Stock</th>
-                <th>Price</th>
-            </tr>
-
-            {% for m in data %}
-            <tr>
-                <td>
-                    <input type="checkbox" name="delete_ids" value="{{ m[0] }}">
-                </td>
-                <td>{{ m[0] }}</td>
-                <td>{{ m[1] }}</td>
-                <td>{{ m[2] }}</td>
-                <td>{{ m[3] }}</td>
-                <td>{{ m[4] }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-
-        <button type="submit" onclick="return confirm('Delete selected medicines?')" style="margin-top:15px;">
-            🗑 Delete Selected
-        </button>
-
-        {% else %}
-
-        <div style="margin-top:20px;">
-            <h3 style="opacity:0.6;">📭 Empty Inventory</h3>
-            <p style="opacity:0.5;">Add medicines to display here</p>
-        </div>
-
-        {% endif %}
-
-    </div>
-
-</form>
-
+<div class="page-header">
+  <div>
+    <h1>Medicine Inventory</h1>
+    <p class="page-subtitle">Full stock list — items ≤ {{ threshold }} units flagged as low</p>
+  </div>
+  <a href="{{ url_for('add_medicine') }}" class="btn btn-primary">+ Add Medicine</a>
 </div>
 
+<!-- Search -->
+<form method="GET" action="{{ url_for('view_medicine') }}" style="margin-bottom:1.25rem;">
+  <div class="search-bar">
+    <input class="form-control" type="text" name="search"
+           value="{{ search }}" placeholder="Search by name…">
+    <button type="submit" class="btn btn-secondary">Search</button>
+    {% if search %}
+      <a href="{{ url_for('view_medicine') }}" class="btn btn-secondary">Clear</a>
+    {% endif %}
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-header">
+    <h2>{% if search %}Results for "{{ search }}"{% else %}All Medicines{% endif %}</h2>
+    <span class="badge badge-teal">{{ medicines|length }} shown</span>
+  </div>
+
+  <form method="POST" action="{{ url_for('delete_medicine') }}" class="delete-form">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;">
+              <input type="checkbox" id="select-all" title="Select all">
+            </th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Stock</th>
+            <th>Price</th>
+            <th>Expiry</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for med in medicines %}
+          <tr>
+            <td><input type="checkbox" name="delete_ids[]" value="{{ med.Medicine_ID }}"></td>
+            <td style="color:var(--gray-400); font-size:.8rem;">{{ med.Medicine_ID }}</td>
+            <td><strong>{{ med.Medicine_Name }}</strong></td>
+            <td>
+              {% if med.Stock <= threshold %}
+                <span class="badge badge-red">⚠ {{ med.Stock }}</span>
+              {% elif med.Stock <= threshold * 3 %}
+                <span class="badge badge-amber">{{ med.Stock }}</span>
+              {% else %}
+                <span class="badge badge-green">{{ med.Stock }}</span>
+              {% endif %}
+            </td>
+            <td>₹{{ "%.2f"|format(med.Price) }}</td>
+            <td>{{ med.Expiry_Date }}</td>
+            <td>
+              <div class="td-actions">
+                <a href="{{ url_for('edit_medicine', med_id=med.Medicine_ID) }}"
+                   class="btn btn-secondary btn-sm">Edit</a>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <span class="empty-icon">🏥</span>
+                <p>{% if search %}No medicines matched "{{ search }}".{% else %}No medicines in inventory yet.{% endif %}</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if medicines %}
+    <div style="padding:.75rem 1rem; border-top:1px solid var(--gray-200); display:flex; gap:.5rem; align-items:center;">
+      <button type="submit" class="btn btn-danger btn-sm">Delete Selected</button>
+      <span style="font-size:.8rem; color:var(--gray-400);">Select rows above then click delete</span>
+    </div>
+    {% endif %}
+  </form>
+
+  {% if total_pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}
+      <a class="page-btn" href="?page={{ page - 1 }}{% if search %}&search={{ search }}{% endif %}">‹</a>
+    {% endif %}
+    {% for p in range(1, total_pages + 1) %}
+      <a class="page-btn {% if p == page %}active{% endif %}"
+         href="?page={{ p }}{% if search %}&search={{ search }}{% endif %}">{{ p }}</a>
+    {% endfor %}
+    {% if page < total_pages %}
+      <a class="page-btn" href="?page={{ page + 1 }}{% if search %}&search={{ search }}{% endif %}">›</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  document.getElementById('select-all').addEventListener('change', function() {
+    document.querySelectorAll('input[name="delete_ids[]"]').forEach(cb => cb.checked = this.checked);
+  });
+</script>
 {% endblock %}

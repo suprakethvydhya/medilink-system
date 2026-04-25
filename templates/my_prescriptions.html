@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
-{% block title %}All Prescriptions{% endblock %}
+{% block title %}My Prescriptions{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>All Prescriptions</h1>
-    <p class="page-subtitle">Complete prescription records</p>
+    <h1>My Prescriptions</h1>
+    <p class="page-subtitle">Prescriptions issued to {{ session.user }}</p>
   </div>
-  <a href="{{ url_for('add_prescription') }}" class="btn btn-primary">+ New Prescription</a>
+  <a href="{{ url_for('patient') }}" class="btn btn-secondary">← Back</a>
 </div>
 
 <div class="card">
   <div class="card-header">
-    <h2>Prescription Records</h2>
-    <span class="badge badge-teal">{{ prescriptions|length }} on this page</span>
+    <h2>Prescription History</h2>
+    <span class="badge badge-teal">{{ prescriptions|length }} shown</span>
   </div>
 
   <div class="table-wrapper">
@@ -21,8 +21,7 @@
       <thead>
         <tr>
           <th>ID</th>
-          <th>Doctor</th>
-          <th>Patient</th>
+          <th>Issued By</th>
           <th>Medicine</th>
           <th>Dosage</th>
           <th>Notes</th>
@@ -34,18 +33,17 @@
         <tr>
           <td style="color:var(--gray-400); font-size:.8rem;">#{{ rx.Prescription_ID }}</td>
           <td>Dr. {{ rx.Doctor_Name }}</td>
-          <td>{{ rx.Patient_Name }}</td>
           <td><strong>{{ rx.Medicine_Name }}</strong></td>
           <td>{{ rx.Dosage or '—' }}</td>
-          <td style="max-width:200px; white-space:pre-wrap; font-size:.8rem; color:var(--gray-500);">{{ rx.Notes or '—' }}</td>
+          <td style="max-width:220px; white-space:pre-wrap;">{{ rx.Notes or '—' }}</td>
           <td>{{ rx.Date }}</td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7">
+          <td colspan="6">
             <div class="empty-state">
-              <span class="empty-icon">📋</span>
-              <p>No prescriptions on record yet.</p>
+              <span class="empty-icon">💊</span>
+              <p>No prescriptions found for your account.</p>
             </div>
           </td>
         </tr>
@@ -54,6 +52,7 @@
     </table>
   </div>
 
+  <!-- Pagination -->
   {% if total_pages > 1 %}
   <div class="pagination">
     {% if page > 1 %}
