@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}403 — Access Denied{% endblock %}
+
+{% block content %}
+<div class="error-page">
+  <div class="error-code">403</div>
+  <h2>Access Denied</h2>
+  <p>You do not have permission to access this page. Please contact your administrator if you believe this is an error.</p>
+  <a href="{{ url_for('dashboard') if session.user else url_for('login') }}"
+     class="btn btn-primary">Go Home</a>
+</div>
+{% endblock %}
